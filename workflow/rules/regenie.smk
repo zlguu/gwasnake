@@ -17,9 +17,12 @@ rule rg_step1:
         bfile=rules.extract_bed_step1.params.output_prefix,
         bsize=config["regenie"]["bsize"],
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/regenie/step1",
+    log:
+        out="logs/{run_id}/{group}/rg_step1.out.log",
+        err="logs/{run_id}/{group}/rg_step1.err.log",
     shell:
         """
-        regenie --step 1 --bed {params.bfile} --covarFile {input.covar} --bsize {params.bsize} --phenoFile {input.phenotype} --out {params.output_prefix} --threads {threads}
+        regenie --step 1 --bed {params.bfile} --covarFile {input.covar} --bsize {params.bsize} --phenoFile {input.phenotype} --out {params.output_prefix} --threads {threads} > {log.out} 2> {log.err}
         """
 
 
@@ -41,9 +44,12 @@ rule rg_step2:
         bfile=config["bfile"]["step2"],
         bsize=config["regenie"]["bsize"],
         prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/regenie",
+    log:
+        out="logs/{run_id}/{group}/rg_step2_{phenotype}.out.log",
+        err="logs/{run_id}/{group}/rg_step2_{phenotype}.err.log",
     shell:
         """
-        regenie --step 2 --bed {params.bfile} --covarFile {input.covar} --bsize {params.bsize} --pred {params.prefix}/step1_pred.list --out {params.prefix}/step2 --phenoFile {input.phenotype} --threads {threads}
+        regenie --step 2 --bed {params.bfile} --covarFile {input.covar} --bsize {params.bsize} --pred {params.prefix}/step1_pred.list --out {params.prefix}/step2 --phenoFile {input.phenotype} --threads {threads} > {log.out} 2> {log.err}
         """
 
 
@@ -57,5 +63,8 @@ rule plot_rg:
         "../envs/base.yml"
     params:
         title=lambda wildcards: f"{wildcards.group}-{wildcards.phenotype}",
+    log:
+        out="logs/{run_id}/{group}/plot_rg_{phenotype}.out.log",
+        err="logs/{run_id}/{group}/plot_rg_{phenotype}.err.log",
     script:
         "../scripts/plot_result.py"

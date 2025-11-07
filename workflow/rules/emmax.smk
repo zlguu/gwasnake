@@ -22,10 +22,14 @@ rule create_step1_tfam:
     params:
         bfile_prefix=rules.extract_bed_step1.params.output_prefix,
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/emmax/step1",
+    log:
+        out="logs/{run_id}/{group}/create_step1_tfam.out.log",
+        err="logs/{run_id}/{group}/create_step1_tfam.err.log",
     shell:
         """
-        plink --bfile {params.bfile_prefix} --recode 12 transpose --output-missing-genotype 0 --out {params.output_prefix}
+        plink --bfile {params.bfile_prefix} --recode 12 transpose --output-missing-genotype 0 --out {params.output_prefix} > {log.out} 2> {log.err}
         """
+
 
 rule create_step2_tfam:
     input:
@@ -46,9 +50,12 @@ rule create_step2_tfam:
     params:
         bfile_prefix=rules.extract_bed_step2.params.output_prefix,
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/emmax/step2",
+    log:
+        out="logs/{run_id}/{group}/create_step2_tfam.out.log",
+        err="logs/{run_id}/{group}/create_step2_tfam.err.log",
     shell:
         """
-        plink --bfile {params.bfile_prefix} --recode 12 transpose --output-missing-genotype 0 --out {params.output_prefix}
+        plink --bfile {params.bfile_prefix} --recode 12 transpose --output-missing-genotype 0 --out {params.output_prefix} > {log.out} 2> {log.err}
         """
 
 
@@ -60,12 +67,12 @@ rule emmax_create_pca:
         pca_emma="results/{run_id}/{group}/emmax/emmax_fit_pca.eigenvec",
     conda:
         "../envs/base.yml"
-
     shell:
         """        
         awk 'BEGIN{{OFS="\t"}}{{for(i=NF+1;i>3;i--)$i=$(i-1);$3="1";print}}' {input.pca} > {output.add_col3}
         grep -v "#FID" {output.add_col3} >{output.pca_emma}    
         """
+
 
 # Create per-chromosome GRM for leave-one-chromosome-out analysis
 rule emmax_kin:
@@ -78,24 +85,26 @@ rule emmax_kin:
         cpus_per_task=threads,
     params:
         tfile_prefix=rules.create_step1_tfam.params.output_prefix,
+    log:
+        out="logs/{run_id}/{group}/emmax_kin.out.log",
+        err="logs/{run_id}/{group}/emmax_kin.err.log",
     shell:
         """
-        emmax-kin-intel64 -v -s -d 10 {params.tfile_prefix}
+        emmax-kin-intel64 -v -s -d 10 {params.tfile_prefix} > {log.out} 2> {log.err}
         """
+
 
 rule emmax_pheno:
     input:
         phenofile=rules.create_sample_list.output.phenotype,
         fam_file="results/{run_id}/{group}/common/step1.fam",
-
     output:
         emmax_pheno="results/{run_id}/{group}/emmax/{phenotype}_emmax_fit.txt",
     conda:
         "../envs/base.yml"
     params:
-        awk_cmd1 = r"'{print $1}'",
-        awk_cmd2 = r"-v value=$id '{if($1==value)print $0}'",
-        
+        awk_cmd1=r"'{print $1}'",
+        awk_cmd2=r"-v value=$id '{if($1==value)print $0}'",
     shell:
         """
         awk {params.awk_cmd1} {input.fam_file} |while read id;do awk {params.awk_cmd2} {input.phenofile};done > {output.emmax_pheno}
@@ -111,17 +120,19 @@ rule emmax_mlm:
         kin=rules.emmax_kin.output.IBS_kinf,
     output:
         assoc="results/{run_id}/{group}/emmax/{phenotype}.ps",
-    threads: config["emmax"]["threads"],
+    threads: config["emmax"]["threads"]
     resources:
         cpus_per_task=threads,
     params:
         tfile_prefix=rules.create_step2_tfam.params.output_prefix,
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/emmax/{wildcards.phenotype}",
+    log:
+        out="logs/{run_id}/{group}/emmax_mlm_{phenotype}.out.log",
+        err="logs/{run_id}/{group}/emmax_mlm_{phenotype}.err.log",
     shell:
         """
-        emmax-intel64 -v -d 10 -t {params.tfile_prefix} -p {input.phenofile} -k {input.kin} -c {input.qcovar} -o {params.output_prefix}
+        emmax-intel64 -v -d 10 -t {params.tfile_prefix} -p {input.phenofile} -k {input.kin} -c {input.qcovar} -o {params.output_prefix} > {log.out} 2> {log.err}
         """
-
 
 
 # Generate Manhattan plot from GCTA MLMA results
@@ -132,5 +143,8 @@ rule plot_emmax:
         png="results/{run_id}/{group}/emmax/{phenotype}.png",
     conda:
         "../envs/base.yml"
+    log:
+        out="logs/{run_id}/{group}/plot_emmax_{phenotype}.out.log",
+        err="logs/{run_id}/{group}/plot_emmax_{phenotype}.err.log",
     script:
         "../scripts/plot_emmax_result.py"

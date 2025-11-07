@@ -21,9 +21,12 @@ rule gcta_grm_full:
     params:
         bfile_prefix=rules.extract_bed_step1.params.output_prefix,
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/gcta/grm_full",
+    log:
+        out="logs/{run_id}/{group}/gcta_grm_full.out.log",
+        err="logs/{run_id}/{group}/gcta_grm_full.err.log",
     shell:
         """
-        gcta64 --bfile {params.bfile_prefix} --make-grm --out {params.output_prefix} --threads {threads}
+        gcta64 --bfile {params.bfile_prefix} --make-grm --out {params.output_prefix} --threads {threads} > {log.out} 2> {log.err}
         """
 
 
@@ -47,9 +50,12 @@ rule gcta_grm_chr:
         bfile_prefix=rules.extract_bed_step1.params.output_prefix,
         chr_num=lambda wildcards: int(wildcards.chr),
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/gcta/grm_chr{wildcards.chr}",
+    log:
+        out="logs/{run_id}/{group}/gcta_grm_chr{chr}.out.log",
+        err="logs/{run_id}/{group}/gcta_grm_chr{chr}.err.log",
     shell:
         """
-        gcta64 --bfile {params.bfile_prefix} --make-grm --chr {params.chr_num} --out {params.output_prefix} --threads {threads}
+        gcta64 --bfile {params.bfile_prefix} --make-grm --chr {params.chr_num} --out {params.output_prefix} --threads {threads} > {log.out} 2> {log.err}
         """
 
 
@@ -71,9 +77,12 @@ rule gcta_mlma:
         grm_chr_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/gcta/grm_chr{wildcards.chr}",
         chr_num=lambda wildcards: int(wildcards.chr),
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/gcta/{wildcards.phenotype}_{wildcards.chr}",
+    log:
+        out="logs/{run_id}/{group}/gcta_mlma_{phenotype}_{chr}.out.log",
+        err="logs/{run_id}/{group}/gcta_mlma_{phenotype}_{chr}.err.log",
     shell:
         """
-        gcta64 --mlma --grm {params.grm_full_prefix} --mlma-subtract-grm {params.grm_chr_prefix} --bfile {params.bfile_prefix} --chr {params.chr_num} --pheno {input.phenotype} --out {params.output_prefix} --thread-num {threads} --qcovar {input.qcovar}
+        gcta64 --mlma --grm {params.grm_full_prefix} --mlma-subtract-grm {params.grm_chr_prefix} --bfile {params.bfile_prefix} --chr {params.chr_num} --pheno {input.phenotype} --out {params.output_prefix} --thread-num {threads} --qcovar {input.qcovar} > {log.out} 2> {log.err}
         """
 
 
@@ -108,5 +117,8 @@ rule plot_gcta:
         png="results/{run_id}/{group}/gcta/{phenotype}.png",
     conda:
         "../envs/base.yml"
+    log:
+        out="logs/{run_id}/{group}/plot_gcta_{phenotype}.out.log",
+        err="logs/{run_id}/{group}/plot_gcta_{phenotype}.err.log",
     script:
         "../scripts/plot_gcta_result.py"

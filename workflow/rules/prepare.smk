@@ -8,7 +8,8 @@ rule create_sample_list:
     params:
         halfsib=HALFSIB,
     log:
-        "logs/{run_id}/{group}/create_sample_list.log",
+        out="logs/{run_id}/{group}/create_sample_list.out.log",
+        err="logs/{run_id}/{group}/create_sample_list.err.log",
     script:
         "../scripts/create_sample_list.py"
 
@@ -24,9 +25,12 @@ rule extract_bed_step1:
     params:
         step1=config["bfile"]["step1"],
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/common/step1",
+    log:
+        out="logs/{run_id}/{group}/extract_bed_step1.out.log",
+        err="logs/{run_id}/{group}/extract_bed_step1.err.log",
     shell:
         """
-        plink --bfile {params.step1} --keep {input.sample_list} --maf 0.01 --geno 0.1 --out {params.output_prefix} --make-bed --threads 1
+        plink --bfile {params.step1} --keep {input.sample_list} --maf 0.01 --geno 0.1 --out {params.output_prefix} --make-bed --threads 1 > {log.out} 2> {log.err}
         """
 
 
@@ -40,9 +44,12 @@ rule extract_bed_step2:
     params:
         step2=config["bfile"]["step2"],
         output_prefix=lambda wildcards: f"results/{wildcards.run_id}/{wildcards.group}/common/step2",
+    log:
+        out="logs/{run_id}/{group}/extract_bed_step2.out.log",
+        err="logs/{run_id}/{group}/extract_bed_step2.err.log",
     shell:
         """
-        plink --bfile {params.step2} --keep {input.sample_list} --maf 0.01 --geno 0.1 --out {params.output_prefix} --make-bed --threads 1
+        plink --bfile {params.step2} --keep {input.sample_list} --maf 0.01 --geno 0.1 --out {params.output_prefix} --make-bed --threads 1 > {log.out} 2> {log.err}
         """
 
 
@@ -62,10 +69,11 @@ rule pca:
         bfile=rules.extract_bed_step1.params.output_prefix,
         comp=config["pca"],
     log:
-        "logs/{run_id}/{group}/pca.log",
+        out="logs/{run_id}/{group}/pca.out.log",
+        err="logs/{run_id}/{group}/pca.err.log",
     shell:
         """
-        plink2 --bfile {params.bfile} --pca {params.comp} --out results/{wildcards.run_id}/{wildcards.group}/common/pca --threads {threads}
+        plink2 --bfile {params.bfile} --pca {params.comp} --out results/{wildcards.run_id}/{wildcards.group}/common/pca --threads {threads} > {log.out} 2> {log.err}
         """
 
 
